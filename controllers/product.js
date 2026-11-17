@@ -1,75 +1,78 @@
 import { isValidObjectId } from "mongoose";
-import Product from "../models/products";
-export const getAllProducts=async(req,res,next)=>{
- try{
-    const {page=1,limit=10}=req.query;
-    const products=await Product.find()
-    .skip((page-1)*limit)
-    .limit(limit);
-    const total=await Product.find().countDocuments();
-    return res.json({data: products,total});    
- }
- catch(error){
-    res.status(500).json({error:error});
- }
+import Product from "../models/product.js";
+import { AppError } from "../utils/AppError.js";
+
+export const getAllProducts = async (req, res) => {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 10);
+
+    if (!Number.isInteger(page) || page < 1 || !Number.isInteger(limit) || limit < 1) {
+        throw new AppError("page and limit must be positive integers", 400, "validation-error");
+    }
+
+    const [products, total] = await Promise.all([
+        Product.find().skip((page - 1) * limit).limit(limit),
+        Product.countDocuments()
+    ]);
+
+    return res.json({ data: products, total });
 };
 
-export const getProductById=async(req,res,next)=>{
-  try{
-  const {id} =req.params;
-  if(!isValidObjectId(id))
-   return res.statu(404).json({error:'Product not founf'});
-  const product=await Product.findById(id);
-  if(!product){
-     return res.statu(404).json({error:'Product not found'});
-  }
-  return res.json({product});
-}
-catch(error){
-   res.statu(500).json({error:error});
-}
+export const getProductById = async (req, res) => {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+        throw new AppError("Product not found", 404, "not-found");
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+        throw new AppError("Product not found", 404, "not-found");
+    }
+
+    return res.json({ product });
 };
-export const addProduct =async (req,res,next)=>{
-    try{
-    const newProduct=new Product(req.body);
+
+export const addProduct = async (req, res) => {
+    const newProduct = new Product(req.body);
     await newProduct.save();
-     res.status(201).json(newProduct);
-    }
-    catch(error){
-       res.status(500).json({error:error});
-    }
+    return res.status(201).json(newProduct);
 };
-export const updateProduct=async (req,res,next)=>{
-  try{
-    console.log(req.body);
-     const {id} =req.params;
-     if(!isValidObjectId(id))
-        return res.status(404).json({error:'product not found'});
-    const product=await Product.findByIdAndUpdate(id,
+
+export const updateProduct = async (req, res) => {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+        throw new AppError("Product not found", 404, "not-found");
+    }
+
+    const product = await Product.findByIdAndUpdate(
+        id,
         {
-        $set: req.body.x,
-        $addToSet: {categories: req.body.y},
+            $set: req.body.x,
+            $addToSet: { categories: req.body.y }
         },
-         {new :true});
-         if(!product){
-            return res.status(404).json({error:'product not found'});}
-         res.json(product);
+        { new: true }
+    );
+
+    if (!product) {
+        throw new AppError("Product not found", 404, "not-found");
     }
-    catch(error){
-        res.status(500).json({error:error});
-    }
+
+    return res.json(product);
 };
-export const deleteProduct=async (req,res,next)=>{
-    try{
-        const {id}=req.body;
-        if(!isValidObjectId(id))
-            return res.status(404).json({error:'product is not find'});
-        const product=await Product.findByIdAndDelete(id);
-        if(!product){
-            return res.status(404).json({error:'product is not found'});}
-        res.status(204).json();
+
+export const deleteProduct = async (req, res) => {
+    const { id } = req.body;
+
+    if (!isValidObjectId(id)) {
+        throw new AppError("Product not found", 404, "not-found");
     }
-    catch(error){
-        res.status(500).json({error:error});
+
+    const product = await Product.findByIdAndDelete(id);
+    if (!product) {
+        throw new AppError("Product not found", 404, "not-found");
     }
+
+    return res.status(204).json();
 };

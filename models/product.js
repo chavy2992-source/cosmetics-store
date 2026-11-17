@@ -7,6 +7,7 @@ const productSchema = new Schema({
     description:String,
      price: Number,
      imageUrl:String,
+     
     inStock:Boolean,
     stockQuantity: Number,
     isBestSeller: Boolean,
